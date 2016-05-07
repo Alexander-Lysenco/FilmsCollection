@@ -1,7 +1,8 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
-# SharpDevelop 5.1
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.21005.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Коллекция фильмов", "Коллекция фильмов\Коллекция фильмов.csproj", "{6C13F84F-5044-4BC1-8DD4-8242E8EE04E0}"
 EndProject
 Global
@@ -14,5 +15,8 @@ Global
 		{6C13F84F-5044-4BC1-8DD4-8242E8EE04E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6C13F84F-5044-4BC1-8DD4-8242E8EE04E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6C13F84F-5044-4BC1-8DD4-8242E8EE04E0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal

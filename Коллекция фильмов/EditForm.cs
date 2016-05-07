@@ -119,6 +119,6 @@ namespace Коллекция_фильмов
 			Star4.Text="★";
 			Star5.Text="★";
 			Rating="★★★★★";
-		}
+        }
 	}
 }

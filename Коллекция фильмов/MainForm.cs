@@ -1,50 +1,36 @@
-﻿/*
- * Created by SharpDevelop.
- * User: LinJay
- * Date: 07.08.2015
- * Time: 0:44
- * 
- * To change this template use Tools | Options | Coding | Edit Standard Headers.
- */
-using System;
-using System.Collections.Generic;
-using System.Drawing;
+﻿using System;
 using System.Windows.Forms;
 using System.IO;
-using System.Text;
+using System.Diagnostics;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace Коллекция_фильмов
 {
-	/// <summary>
-	/// Description of MainForm.
-	/// </summary>
 	public partial class MainForm : Form
 	{
 		public MainForm()
-		{
-			//
-			// The InitializeComponent() call is required for Windows Forms designer support.
-			//
-			InitializeComponent();
+		{   InitializeComponent();
 			EditForm = new EditForm(this);
-		
-			/*Create an instance of a ListView column sorter and assign it 
-			to the ListView control.
-			lvwColumnSorter = new ListViewColumnSorter();
-			this.FilmsCollection.ListViewItemSorter = lvwColumnSorter;
-			*/
-			//
-			// TODO: Add constructor code after the InitializeComponent() call.
-			//
+			AboutForm = new AboutForm();
 		}
-		//private ListViewColumnSorter lvwColumnSorter;
+
 		EditForm EditForm;
+		AboutForm AboutForm;
 		public string CurrentMode="Review";
 		public bool IsEmptyValue;
 		public int FilmCount;
 		public string FilmQuantity;
 		public int sortColumn = -1;
-		//FileStream File = new FileStream("program.txt",FileMode.OpenOrCreate);
+        public bool EmergencyCrash = false;
+
+        [Serializable]
+        public struct FilmsList
+        {
+            public string FilmName;
+            public string FilmAddedTime;
+            public string FilmRating;
+            public string FilmComment;
+        }
 		
 		public void FormRefresh()
 		{	FilmQuantityEnder();
@@ -64,7 +50,8 @@ namespace Коллекция_фильмов
 				HintFilmCommentLabel.Text="Отзыв о фильме:";
 				EditForm.EditFilmCommentLabel.Text="Отзыв о фильме";
 				CurrentModeLabel.Text="В режиме рецензии Вы можете оставить ранее просмотренному Вами фильму оценку и небольшой отзыв.";
-				FilmsQuantityInfoLabel.Text="На текущий момент в коллекцию добавлен" + FilmQuantity;
+                FilmsQuantityInfoLabel.Text = "На текущий момент в коллекцию добавлен" + FilmQuantity;
+                FilmCommentTB.Text = String.Empty;
 				this.Refresh();
 			}
 			else
@@ -80,47 +67,97 @@ namespace Коллекция_фильмов
 				EditForm.EditFilmCommentLabel.Text="Описание к фильму";
 				CurrentModeLabel.Text="В режиме расписания Вы можете добавить желаемые или планируемые к просмотру фильмы, указать приоритет и оставить небольшое описание.";
 				FilmsQuantityInfoLabel.Text="На текущий момент в коллекцию добавлен" + FilmQuantity;
+                FilmCommentTB.Text = String.Empty;
 				this.Refresh();
 			}
 		}
 		void FilmQuantityEnder()
 		{	FilmCount=FilmsCollection.Items.Count;
-			if(FilmCount%10==1&&FilmCount!=11) FilmQuantity=" " + FilmCount + " фильм.";
+			if(FilmCount%10==1&&FilmCount%100!=11) FilmQuantity=" " + FilmCount + " фильм.";
 			else 
-			{	if((FilmCount%10==2&&FilmCount!=12)||(FilmCount%10==3&&FilmCount!=13)||(FilmCount%10==4&&FilmCount!=14))
+			{	if((FilmCount%10==2&&FilmCount%100!=12)||(FilmCount%10==3&&FilmCount%100!=13)||(FilmCount%10==4&&FilmCount%100!=14))
 				FilmQuantity="о " + FilmCount + " фильма.";
 				else FilmQuantity="о " + FilmCount + " фильмов.";
 			}
 		}
 		void LoadCollection()
 		{	FilmsCollection.Items.Clear();
-			if(File.Exists(CurrentMode+".collection")==true)
+			/*if(File.Exists(CurrentMode+".collection"))
 			{
 				string[] items = File.ReadAllLines(CurrentMode+".collection");
 				foreach (var item in items)
 				{FilmsCollection.Items.Add(new ListViewItem(item.Split('\t')));}
 				FormRefresh();
-			}
+			}*/
+            BinaryFormatter BinFile = new BinaryFormatter(); 
+            FilmsList[] FilmsList = new FilmsList[0];
+            if (File.Exists(CurrentMode+".collection"))
+            {                
+                Stream OpenFile = new FileStream(CurrentMode + ".collection", FileMode.Open, FileAccess.Read, FileShare.Read);
+                try
+                {   FilmsList = (FilmsList[])BinFile.Deserialize(OpenFile);
+                }
+                catch
+                {
+                    OpenFile.Close();
+                    EmergencyCrash = true;
+                    File.Copy("Review.collection", "Review.old.collection", true);
+                    File.Copy("TimeTable.collection", "TimeTable.old.collection", true);
+                    RebuildCollectionFiles();
+                    if(MessageBox.Show("Произошла ошибка чтения файла!\n" +
+                        "Возможно, версия Ваших файлов коллекции не совпадает с новым бинарным стандартом, \n" + 
+                        "поэтому сейчас программа автоматически перестроит их и перезапустится.\n" + 
+                        "Ваши данные не будут повреждены! \n" + 
+                        "Ни в коем случае не редактируйте файлы коллекции вручную!\n\n" + 
+                        "Оставить Вам на память старые версии файлов коллекции?",
+                    "Упс... Не переживайте, все под контролем!", MessageBoxButtons.YesNo, MessageBoxIcon.Error)==DialogResult.No)
+                    {
+                        File.Delete("Review.old.collection");
+                        File.Delete("TimeTable.old.collection");
+                    }
+                    else
+                    {
+                        MessageBox.Show("Копии файлов коллекции находятся в папке с программой, с добавлением \"*.old\" в конце названия. Приятного использования!","Хорошо, мы их сохранили",MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    Application.Restart();
+                }
+                
+                for (int i = 0; i < FilmsList.Length; i++)
+                {   ListViewItem item = new ListViewItem(FilmsList[i].FilmName);
+                    FilmsCollection.Items.Add(item);
+                    item.SubItems.Add(FilmsList[i].FilmAddedTime);
+                    item.SubItems.Add(FilmsList[i].FilmRating);
+                    item.SubItems.Add(FilmsList[i].FilmComment); 
+                }
+                OpenFile.Close();
+            }
+            FormRefresh();
 		}
+
 		void SaveCollection()
-		{	StreamWriter writer = File.CreateText(CurrentMode+".collection");
+		{	/*StreamWriter writer = File.CreateText(CurrentMode+".collection");
             StringBuilder builder = new StringBuilder();
             foreach (ListViewItem item in FilmsCollection.Items)
-            {
-                /*//This Code, maybe, will not be used anymore
- 				foreach (ListViewItem.ListViewSubItem subItem in item.SubItems)
-                {
-                    builder.Append(subItem.Text).Append('\t');
-                }
-                writer.WriteLine(builder);
-                builder.Clear();*/
-                for (int ls = 0; ls < 3; ls++) 
+            {   for (int ls = 0; ls < 3; ls++) 
                 {writer.Write("{0}\t", item.SubItems[ls].Text);
                 }
                 writer.Write("{0}\n", item.SubItems[3].Text);
             }
-            writer.Close();
-            FilmsCollection.Items.Clear();
+            writer.Close();*/
+            FilmsList[] FilmsList = new FilmsList[FilmsCollection.Items.Count];
+            for (int i = 0; i < FilmsCollection.Items.Count; i++)
+            {   FilmsList[i].FilmName = FilmsCollection.Items[i].SubItems[0].Text;
+                FilmsList[i].FilmAddedTime = FilmsCollection.Items[i].SubItems[1].Text;
+                FilmsList[i].FilmRating = FilmsCollection.Items[i].SubItems[2].Text;
+                FilmsList[i].FilmComment = FilmsCollection.Items[i].SubItems[3].Text;
+            }
+            BinaryFormatter BinFile = new BinaryFormatter();
+            Stream SaveFile = new FileStream(CurrentMode + ".collection", FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+            BinFile.Serialize(SaveFile, FilmsList);
+            SaveFile.Close();
+            
+
+
 		}
 		
 		void AddFilmButtonClick(object sender, EventArgs e)
@@ -170,22 +207,22 @@ namespace Коллекция_фильмов
 			FormRefresh();
 		}
 		void AuthorsProfileTSMIClick(object sender, EventArgs e)
-		{	System.Diagnostics.Process.Start("https://vk.com/id90781995");}
+		{	Process.Start("https://vk.com/id90781995");}
 		void FindInGoogleTSMIClick(object sender, EventArgs e)
-		{	System.Diagnostics.Process.Start("https://www.google.com");}
+		{	Process.Start("https://www.google.com");}
 		void CloseAppTSMIClick(object sender, EventArgs e)
 		{	Application.Exit();}
 		
 		void FilmsCollectionItemActivate(object sender, EventArgs e)
-		{	FilmNameLabel.Text=FilmsCollection.FocusedItem.SubItems[0].Text;
+        {   FilmNameLabel.Text=FilmsCollection.FocusedItem.SubItems[0].Text;
 			FilmAddedDateLabel.Text=FilmsCollection.FocusedItem.SubItems[1].Text;
 			FilmRatingLabel.Text=FilmsCollection.FocusedItem.SubItems[2].Text;
 			FilmCommentTB.Text=FilmsCollection.FocusedItem.SubItems[3].Text;		
 		}
 		void FilmsCollectionSelectedIndexChanged(object sender, EventArgs e)
-		{	FormRefresh();
+        {   FilmCommentTB.Refresh();
 			try{FilmsCollectionItemActivate(sender,e);}
-			catch(NullReferenceException){;}
+            catch (Exception) {; }
 		}
 		void FilmsCollectionColumnClick(object sender, ColumnClickEventArgs e)
 		{	// Определение того, совпадает ли столбец с последним выбранным столбцом.
@@ -196,32 +233,13 @@ namespace Коллекция_фильмов
 		        FilmsCollection.Sorting = SortOrder.Ascending;
 		    }
 		    else
-		    {	// Определение и последующее изменение последнего порядка сортировки.
-		        if (FilmsCollection.Sorting == SortOrder.Ascending)
+		    {	if (FilmsCollection.Sorting == SortOrder.Ascending)
 		            FilmsCollection.Sorting = SortOrder.Descending;
 		        else
 		            FilmsCollection.Sorting = SortOrder.Ascending;
-		   }
-		
-		    // Вызов метода ручной сортировки.
+		    }		    
 		    this.FilmsCollection.Sort();
-		    // Установка свойства ListViewItemSorter на новый объект ListViewItemComparer.
-			this.FilmsCollection.ListViewItemSorter = new ListViewItemComparer(e.Column, FilmsCollection.Sorting);
-			/*
-			if ( e.Column == lvwColumnSorter.SortColumn )
-			{	if (lvwColumnSorter.Order == SortOrder.Ascending)
-				{	lvwColumnSorter.Order = SortOrder.Descending;
-				}
-				else
-				{	lvwColumnSorter.Order = SortOrder.Ascending;
-				}
-			}
-			else
-			{	lvwColumnSorter.SortColumn = e.Column;
-				lvwColumnSorter.Order = SortOrder.Ascending;
-			}
-			this.FilmsCollection.Sort();
-			*/				
+			this.FilmsCollection.ListViewItemSorter = new ListViewItemComparer(e.Column, FilmsCollection.Sorting);		
 		}
 		
 		void ContextMenuBlockOpening(object sender, System.ComponentModel.CancelEventArgs e)
@@ -235,21 +253,58 @@ namespace Коллекция_фильмов
 			FormRefresh();
 		}
 		void MainFormFormClosing(object sender, FormClosingEventArgs e)
-		{	SaveCollection();
-		}
+        {
+            if (!EmergencyCrash)
+            {
+            SaveCollection();
+            }
+        } 
 		
 		void AboutTSMIClick(object sender, EventArgs e)
-		{MessageBox.Show("Коллекция фильмов\nДата создания: 8 августа 2015 г.\n" +
-			"Автор программы: Александр \"LinJay\" Лысенко\n" +
-			"Текущая версия: 1.1\nДата выхода этой версии: 19 августа 2015 г.\n\nЧто нового в этой версии:\n" +
-			"● Изменения в интерфейсе и внешнем виде программы,\n" +
-			"● Переработан алгоритм сохранения файлов коллекции,\n" +
-			"✔ Исправлена проблема переключения элементов в списке при помощи клавиш,\n" +
-			"✔ Исправлена сортировка столбца с датами,\n" +
-			"✙ Добавлена возможность копировать название выделенного фильма через контекстное меню,\n" +
-			"\nНаписать автору предложения, жалобы или информацию о найденных ошибках в программе можно на e-mail:\n" +
-			"LinJay@ya.ru",
-			"О программе \"Коллекция фильмов\" v1.1", MessageBoxButtons.OK, MessageBoxIcon.Asterisk);
+		{   AboutForm.ShowDialog(); 
 		}
+        public void RebuildCollectionFiles() 
+        {   FilmsCollection.Items.Clear();
+            if (File.Exists("Review.old.collection"))
+            {
+                string[] items = File.ReadAllLines("Review.old.collection");
+                foreach (var item in items)
+                {FilmsCollection.Items.Add(new ListViewItem(item.Split('\t')));}
+                this.Refresh();
+            }
+            FilmsList[] FilmsList = new FilmsList[FilmsCollection.Items.Count];
+            for (int i = 0; i < FilmsCollection.Items.Count; i++)
+            {
+                FilmsList[i].FilmName = FilmsCollection.Items[i].SubItems[0].Text;
+                FilmsList[i].FilmAddedTime = FilmsCollection.Items[i].SubItems[1].Text;
+                FilmsList[i].FilmRating = FilmsCollection.Items[i].SubItems[2].Text;
+                FilmsList[i].FilmComment = FilmsCollection.Items[i].SubItems[3].Text;
+            }
+            BinaryFormatter BinFile = new BinaryFormatter();
+            Stream SerializeMe = new FileStream("Review.collection", FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+            BinFile.Serialize(SerializeMe, FilmsList);
+            SerializeMe.Close();
+
+            FilmsCollection.Items.Clear();
+            if (File.Exists("TimeTable.old.collection"))
+            {
+                string[] items = File.ReadAllLines("TimeTable.old.collection");
+                foreach (var item in items)
+                { FilmsCollection.Items.Add(new ListViewItem(item.Split('\t'))); }
+                this.Refresh();
+            }
+            FilmsList[] FilmsList2 = new FilmsList[FilmsCollection.Items.Count];
+            for (int j = 0; j < FilmsCollection.Items.Count; j++)
+            {
+                FilmsList2[j].FilmName = FilmsCollection.Items[j].SubItems[0].Text;
+                FilmsList2[j].FilmAddedTime = FilmsCollection.Items[j].SubItems[1].Text;
+                FilmsList2[j].FilmRating = FilmsCollection.Items[j].SubItems[2].Text;
+                FilmsList2[j].FilmComment = FilmsCollection.Items[j].SubItems[3].Text;
+            }
+            Stream SerializeMe2 = new FileStream("TimeTable.collection", FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+            BinFile.Serialize(SerializeMe2, FilmsList2);
+            SerializeMe2.Close();
+            return;
+        }
 	}
 }
