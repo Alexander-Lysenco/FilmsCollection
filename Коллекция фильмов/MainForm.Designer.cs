@@ -103,6 +103,8 @@ namespace Коллекция_фильмов
             this.CurrentModeLabel = new System.Windows.Forms.Label();
             this.ModifyCollectionInfoLabel = new System.Windows.Forms.Label();
             this.FilmsQuantityInfoLabel = new System.Windows.Forms.Label();
+            this.SaveToCSV_TSMI = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.ContextMenuBlock.SuspendLayout();
             this.FilmInformationGB.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.SimpleLogo)).BeginInit();
@@ -321,6 +323,8 @@ namespace Коллекция_фильмов
             // FileTollSMI
             // 
             this.FileTollSMI.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.SaveToCSV_TSMI,
+            this.toolStripSeparator1,
             this.CloseAppTSMI});
             this.FileTollSMI.Name = "FileTollSMI";
             this.FileTollSMI.Size = new System.Drawing.Size(48, 20);
@@ -330,7 +334,7 @@ namespace Коллекция_фильмов
             // 
             this.CloseAppTSMI.Name = "CloseAppTSMI";
             this.CloseAppTSMI.ShortcutKeys = ((System.Windows.Forms.Keys)((System.Windows.Forms.Keys.Alt | System.Windows.Forms.Keys.F4)));
-            this.CloseAppTSMI.Size = new System.Drawing.Size(162, 22);
+            this.CloseAppTSMI.Size = new System.Drawing.Size(231, 22);
             this.CloseAppTSMI.Text = "Закрыть";
             this.CloseAppTSMI.Click += new System.EventHandler(this.CloseAppTSMIClick);
             // 
@@ -427,6 +431,18 @@ namespace Коллекция_фильмов
             this.FilmsQuantityInfoLabel.TabIndex = 0;
             this.FilmsQuantityInfoLabel.Text = "На текущий момент в коллекцию добавлено 0 фильмов.";
             // 
+            // SaveToCSV_TSMI
+            // 
+            this.SaveToCSV_TSMI.Name = "SaveToCSV_TSMI";
+            this.SaveToCSV_TSMI.Size = new System.Drawing.Size(231, 22);
+            this.SaveToCSV_TSMI.Text = "Сохранить коллекцию в CSV";
+            this.SaveToCSV_TSMI.Click += new System.EventHandler(this.SaveToCSV_TSMI_Click);
+            // 
+            // toolStripSeparator1
+            // 
+            this.toolStripSeparator1.Name = "toolStripSeparator1";
+            this.toolStripSeparator1.Size = new System.Drawing.Size(228, 6);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -463,5 +479,7 @@ namespace Коллекция_фильмов
 		}
 
         public System.Windows.Forms.RichTextBox FilmCommentTB;
+        private System.Windows.Forms.ToolStripMenuItem SaveToCSV_TSMI;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
 	}
 }
